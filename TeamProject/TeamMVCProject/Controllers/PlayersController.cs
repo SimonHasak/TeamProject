@@ -8,6 +8,7 @@ using System.Web;
 using System.Web.Mvc;
 using TeamMVCProject.Context;
 using TeamMVCProject.Models;
+using TeamMVCProject.ViewModels;
 
 namespace TeamMVCProject.Controllers
 {
@@ -39,6 +40,10 @@ namespace TeamMVCProject.Controllers
         // GET: Players/Create
         public ActionResult Create()
         {
+            ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName");
+            var player = new Player();
+            player.Teams = new List<Team>();
+            PopulateAssignedTeamData(player);
             return View();
         }
 
@@ -47,8 +52,18 @@ namespace TeamMVCProject.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "ID,Name,Description")] Player player)
+        public ActionResult Create([Bind(Include = "ID,Name,Description")] Player player, string[] selectedTeams)
         {
+            if (selectedTeams != null)
+            {
+                player.Teams = new List<Team>();
+                foreach (var team in selectedTeams)
+                {
+                    var teamToAdd = db.Teams.Find(int.Parse(team));
+                    player.Teams.Add(teamToAdd);
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 db.Players.Add(player);
@@ -56,6 +71,8 @@ namespace TeamMVCProject.Controllers
                 return RedirectToAction("Index");
             }
 
+            //ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName", player.TeamID);
+            PopulateAssignedTeamData(player);
             return View(player);
         }
 
@@ -66,11 +83,19 @@ namespace TeamMVCProject.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Player player = db.Players.Find(id);
+            //Player player = db.Players.Find(id);
+
+            Player player = db.Players
+                .Include(p => p.Teams)
+                .Where(i => i.ID == id)
+                .Single();
+
             if (player == null)
             {
                 return HttpNotFound();
             }
+            //ViewBag.Team = new SelectList(db.Teams, "ID", "Name", player.Teams);
+            PopulateAssignedTeamData(player);
             return View(player);
         }
 
@@ -87,6 +112,7 @@ namespace TeamMVCProject.Controllers
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
+            PopulateAssignedTeamData(player);
             return View(player);
         }
 
@@ -114,6 +140,53 @@ namespace TeamMVCProject.Controllers
             db.Players.Remove(player);
             db.SaveChanges();
             return RedirectToAction("Index");
+        }
+
+        private void PopulateAssignedTeamData(Player player)
+        {
+            var allTeams = db.Teams;
+            var playerTeams = new HashSet<int>(player.Teams.Select(t => t.ID));
+            var viewModel = new List<PlayerTeamVM>();
+            foreach (var team in allTeams)
+            {
+                viewModel.Add(new PlayerTeamVM
+                {
+                    ID = team.ID,
+                    Name = team.Name,
+                    isAssigned = playerTeams.Contains(team.ID)
+                });
+            }
+            ViewBag.Teams = viewModel;
+        }
+
+        private void UpdatePlayerTeams(string[] selectedTeams, Player playerToUpdate)
+        {
+            if (selectedTeams == null)
+            {
+                playerToUpdate.Teams = new List<Team>();
+                return;
+            }
+
+            var selectedTeamsHS = new HashSet<string>(selectedTeams);
+            var playerTeams = new HashSet<int>
+                (playerToUpdate.Teams.Select(t => t.ID));
+            foreach (var team in db.Teams)
+            {
+                if (selectedTeamsHS.Contains(team.ID.ToString()))
+                {
+                    if (!playerTeams.Contains(team.ID))
+                    {
+                        playerToUpdate.Teams.Add(team);
+                    }
+                }
+                else
+                {
+                    if (playerTeams.Contains(team.ID))
+                    {
+                        playerToUpdate.Teams.Remove(team);
+                    }
+                }
+            }
         }
 
         protected override void Dispose(bool disposing)
