@@ -8,7 +8,7 @@ using TeamMVCProject.Models;
 
 namespace TeamMVCProject.Initializer
 {
-    public class ModelsInitializer : DropCreateDatabaseAlways<TeamsPlayersContext>
+    public class ModelsInitializer : DropCreateDatabaseIfModelChanges<TeamsPlayersContext>
     {
         protected override void Seed(TeamsPlayersContext context)
         {

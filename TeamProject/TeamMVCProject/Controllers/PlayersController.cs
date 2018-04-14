@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Net;
 using System.Web;
@@ -19,7 +20,8 @@ namespace TeamMVCProject.Controllers
         // GET: Players
         public ActionResult Index()
         {
-            return View(db.Players.ToList());
+            var players = db.Players.Include(p => p.Teams);
+            return View(players.ToList());
         }
 
         // GET: Players/Details/5
@@ -40,7 +42,7 @@ namespace TeamMVCProject.Controllers
         // GET: Players/Create
         public ActionResult Create()
         {
-            ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName");
+            ViewBag.PlayerID = new SelectList(db.Players, "ID", "PlayerName");
             var player = new Player();
             player.Teams = new List<Team>();
             PopulateAssignedTeamData(player);
@@ -104,16 +106,36 @@ namespace TeamMVCProject.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "ID,Name,Description")] Player player)
+        public ActionResult Edit(int? id, string[] selectedTeams)
         {
-            if (ModelState.IsValid)
+            if (id == null)
             {
-                db.Entry(player).State = EntityState.Modified;
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            var playerToUpdate = db.Players
+                .Include(p => p.Teams)
+                .Where(i => i.ID == id)
+                .Single();
+            
+            try
+            {
+                UpdatePlayerTeams(selectedTeams, playerToUpdate);
+
+                db.Entry(playerToUpdate).State = EntityState.Modified;
                 db.SaveChanges();
+
                 return RedirectToAction("Index");
             }
-            PopulateAssignedTeamData(player);
-            return View(player);
+            catch (RetryLimitExceededException /* dex */)
+            {
+                //Log the error (uncomment dex variable name and add a line here to write a log.
+                ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists, see your system administrator.");
+            }
+            
+
+            //ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName", playerToUpdate.TeamID);
+            PopulateAssignedTeamData(playerToUpdate);
+            return View(playerToUpdate);
         }
 
         // GET: Players/Delete/5

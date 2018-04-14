@@ -9,7 +9,7 @@ namespace TeamMVCProject.Context
     {
         public TeamsPlayersContext() : base("TeamsPlayersContext")
         {
-            Database.SetInitializer(new ModelsInitializer());
+            //Database.SetInitializer(new ModelsInitializer());
         }
 
         public DbSet<Player> Players { get; set; }

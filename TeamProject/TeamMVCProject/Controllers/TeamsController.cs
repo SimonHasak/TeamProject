@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Mvc;
 using TeamMVCProject.Context;
 using TeamMVCProject.Models;
+using TeamMVCProject.ViewModels;
 
 namespace TeamMVCProject.Controllers
 {
@@ -18,7 +20,8 @@ namespace TeamMVCProject.Controllers
         // GET: Teams
         public ActionResult Index()
         {
-            return View(db.Teams.ToList());
+            var teams = db.Teams.Include(p => p.Players);
+            return View(teams.ToList());
         }
 
         // GET: Teams/Details/5
@@ -39,6 +42,10 @@ namespace TeamMVCProject.Controllers
         // GET: Teams/Create
         public ActionResult Create()
         {
+            ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName");
+            var team = new Team();
+            team.Players = new List<Player>();
+            PopulateAssignedTeamData(team);
             return View();
         }
 
@@ -47,15 +54,25 @@ namespace TeamMVCProject.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "ID,Name,Description")] Team team)
+        public ActionResult Create([Bind(Include = "ID,Name,Description")] Team team, string[] selectedPlayers)
         {
+            if (selectedPlayers != null)
+            {
+                team.Players = new List<Player>();
+                foreach (var player in selectedPlayers)
+                {
+                    var playerToAdd = db.Players.Find(int.Parse(player));
+                    team.Players.Add(playerToAdd);
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 db.Teams.Add(team);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-
+            PopulateAssignedTeamData(team);
             return View(team);
         }
 
@@ -66,11 +83,17 @@ namespace TeamMVCProject.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Team team = db.Teams.Find(id);
+            //Team team = db.Teams.Find(id);
+            Team team = db.Teams
+                .Include(p => p.Players)
+                .Where(c => c.ID == id)
+                .Single();
+
             if (team == null)
             {
                 return HttpNotFound();
             }
+            PopulateAssignedTeamData(team);
             return View(team);
         }
 
@@ -79,15 +102,83 @@ namespace TeamMVCProject.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "ID,Name,Description")] Team team)
+        public ActionResult Edit(int? id, string[] selectedPlayers)
         {
-            if (ModelState.IsValid)
+            if (id == null)
             {
-                db.Entry(team).State = EntityState.Modified;
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+            }
+            var teamToUpdate = db.Teams
+                .Include(p => p.Players)
+                .Where(i => i.ID == id)
+                .Single();
+
+            try
+            {
+                UpdateTeamPlayers(selectedPlayers, teamToUpdate);
+
+                db.Entry(teamToUpdate).State = EntityState.Modified;
                 db.SaveChanges();
+
                 return RedirectToAction("Index");
             }
-            return View(team);
+            catch (RetryLimitExceededException /* dex */)
+            {
+                //Log the error (uncomment dex variable name and add a line here to write a log.
+                ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists, see your system administrator.");
+            }
+
+
+            //ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName", playerToUpdate.TeamID);
+            PopulateAssignedTeamData(teamToUpdate);
+            return View(teamToUpdate);
+        }
+
+        private void PopulateAssignedTeamData(Team team)
+        {
+            var allPlayers = db.Players;
+            var teamPlayers = new HashSet<int>(team.Players.Select(t => t.ID));
+            var viewModel = new List<PlayerTeamVM>();
+            foreach (var player in allPlayers)
+            {
+                viewModel.Add(new PlayerTeamVM
+                {
+                    ID = player.ID,
+                    Name = player.Name,
+                    isAssigned = teamPlayers.Contains(player.ID)
+                });
+            }
+            ViewBag.Players = viewModel;
+        }
+
+        private void UpdateTeamPlayers(string[] selectedPlayers, Team teamToUpdate)
+        {
+            if (selectedPlayers == null)
+            {
+                teamToUpdate.Players = new List<Player>();
+                return;
+            }
+
+            var selectedPlayersHS = new HashSet<string>(selectedPlayers);
+            var teamPlayers = new HashSet<int>
+                (teamToUpdate.Players.Select(p => p.ID));
+            foreach (var player in db.Players)
+            {
+                if (selectedPlayersHS.Contains(player.ID.ToString()))
+                {
+                    if (!teamPlayers.Contains(player.ID))
+                    {
+                        teamToUpdate.Players.Add(player);
+                    }
+                }
+                else
+                {
+                    if (teamPlayers.Contains(player.ID))
+                    {
+                        teamToUpdate.Players.Remove(player);
+                    }
+                }
+            }
         }
 
         // GET: Teams/Delete/5

@@ -188,3 +188,5 @@ C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.
 C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.csproj.CopyComplete
 C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.dll
 C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.pdb
+C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.Migrations.InitialCreate.resources
+C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.csproj.GenerateResource.cache
