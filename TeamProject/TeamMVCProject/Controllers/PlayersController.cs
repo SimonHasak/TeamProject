@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Net;
-using System.Web;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 using TeamMVCProject.Context;
 using TeamMVCProject.Models;
@@ -18,20 +17,20 @@ namespace TeamMVCProject.Controllers
         private TeamsPlayersContext db = new TeamsPlayersContext();
 
         // GET: Players
-        public ActionResult Index()
+        public async Task<ActionResult> Index()
         {
             var players = db.Players.Include(p => p.Teams);
-            return View(players.ToList());
+            return View(await players.ToListAsync());
         }
 
         // GET: Players/Details/5
-        public ActionResult Details(int? id)
+        public async Task<ActionResult> Details(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Player player = db.Players.Find(id);
+            Player player = await db.Players.FindAsync(id);
             if (player == null)
             {
                 return HttpNotFound();
@@ -40,7 +39,7 @@ namespace TeamMVCProject.Controllers
         }
 
         // GET: Players/Create
-        public ActionResult Create()
+        public async Task<ActionResult> Create()
         {
             ViewBag.PlayerID = new SelectList(db.Players, "ID", "PlayerName");
             var player = new Player();
@@ -54,14 +53,14 @@ namespace TeamMVCProject.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "ID,Name,Description")] Player player, string[] selectedTeams)
+        public async Task<ActionResult> Create([Bind(Include = "ID,Name,Description")] Player player, string[] selectedTeams)
         {
             if (selectedTeams != null)
             {
                 player.Teams = new List<Team>();
                 foreach (var team in selectedTeams)
                 {
-                    var teamToAdd = db.Teams.Find(int.Parse(team));
+                    var teamToAdd = await db.Teams.FindAsync(int.Parse(team));
                     player.Teams.Add(teamToAdd);
                 }
             }
@@ -79,7 +78,7 @@ namespace TeamMVCProject.Controllers
         }
 
         // GET: Players/Edit/5
-        public ActionResult Edit(int? id)
+        public async Task<ActionResult> Edit(int? id)
         {
             if (id == null)
             {
@@ -87,10 +86,10 @@ namespace TeamMVCProject.Controllers
             }
             //Player player = db.Players.Find(id);
 
-            Player player = db.Players
+            Player player = await db.Players
                 .Include(p => p.Teams)
                 .Where(i => i.ID == id)
-                .Single();
+                .SingleAsync();
 
             if (player == null)
             {
@@ -106,16 +105,16 @@ namespace TeamMVCProject.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(int? id, string[] selectedTeams)
+        public async Task<ActionResult> Edit(int? id, string[] selectedTeams)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            var playerToUpdate = db.Players
+            var playerToUpdate = await db.Players
                 .Include(p => p.Teams)
                 .Where(i => i.ID == id)
-                .Single();
+                .SingleAsync();
             
             try
             {
@@ -139,13 +138,13 @@ namespace TeamMVCProject.Controllers
         }
 
         // GET: Players/Delete/5
-        public ActionResult Delete(int? id)
+        public async Task<ActionResult> Delete(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Player player = db.Players.Find(id);
+            Player player = await db.Players.FindAsync(id);
             if (player == null)
             {
                 return HttpNotFound();
@@ -156,9 +155,9 @@ namespace TeamMVCProject.Controllers
         // POST: Players/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public ActionResult DeleteConfirmed(int id)
+        public async Task<ActionResult> DeleteConfirmed(int id)
         {
-            Player player = db.Players.Find(id);
+            Player player = await db.Players.FindAsync(id);
             db.Players.Remove(player);
             db.SaveChanges();
             return RedirectToAction("Index");
