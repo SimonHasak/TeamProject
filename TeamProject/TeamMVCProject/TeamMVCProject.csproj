@@ -160,10 +160,15 @@
     <Compile Include="Migrations\201804141938033_InitialCreate.Designer.cs">
       <DependentUpon>201804141938033_InitialCreate.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201805041423176_name is required.cs" />
+    <Compile Include="Migrations\201805041423176_name is required.Designer.cs">
+      <DependentUpon>201805041423176_name is required.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Player.cs" />
     <Compile Include="Models\Team.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Repository\PlayerRepository.cs" />
     <Compile Include="ViewModels\PlayerTeamVM.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -236,6 +241,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\201804141938033_InitialCreate.resx">
       <DependentUpon>201804141938033_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201805041423176_name is required.resx">
+      <DependentUpon>201805041423176_name is required.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

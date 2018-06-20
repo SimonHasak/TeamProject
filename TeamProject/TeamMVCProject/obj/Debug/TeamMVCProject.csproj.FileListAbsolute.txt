@@ -190,3 +190,4 @@ C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.
 C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.pdb
 C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.Migrations.InitialCreate.resources
 C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.csproj.GenerateResource.cache
+C:\Users\simon\Desktop\work\TeamProject\TeamMVCProject\obj\Debug\TeamMVCProject.Migrations.nameisrequired.resources

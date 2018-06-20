@@ -20,8 +20,7 @@ namespace TeamMVCProject.Controllers
         // GET: Teams
         public async Task<ActionResult> Index()
         {
-            var teams = db.Teams.Include(p => p.Players);
-            return View(await teams.ToListAsync());
+            return View(await db.Teams.Include(p => p.Players).ToListAsync());        
         }
 
         // GET: Teams/Details/5
@@ -83,7 +82,7 @@ namespace TeamMVCProject.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            //Team team = db.Teams.Find(id);
+            //Team team = db.Teams.Find(id);db.Players.Include(p => p.Teams).ToListAsync()
             Team team = await db.Teams
                 .Include(p => p.Players)
                 .Where(c => c.ID == id)
