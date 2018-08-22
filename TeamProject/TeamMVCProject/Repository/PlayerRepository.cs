@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Data.Entity;
 using System.Threading.Tasks;
-using System.Web;
 using TeamMVCProject.Context;
 using TeamMVCProject.Models;
 
@@ -23,10 +20,10 @@ namespace TeamMVCProject.Repository
             return await db.Players.Include(p => p.Teams).ToListAsync();
         }
 
-        public void AddPlayer(Player player)
+        public async Task AddPlayer(Player player)
         {
             db.Players.Add(player);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
         }
         
         public async Task SetPlayerTeams(Player player, int[] selectedTeams)
@@ -49,17 +46,17 @@ namespace TeamMVCProject.Repository
             return await db.Players.ToListAsync();
         }
 
-        public void Edit(Player player)
+        public async Task Edit(Player player)
         {
             db.Entry(player).State = EntityState.Modified;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
         }
 
         public async Task Remove(int id)
         {
             var player = await this.FindAsync(id);
             db.Players.Remove(player);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
         }
     }
 }

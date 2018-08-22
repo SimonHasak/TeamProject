@@ -117,7 +117,7 @@ namespace TeamMVCProject.Controllers
             if (ModelState.IsValid)
             {
                 await UpdatePlayerTeams(selectedTeams, playerToUpdate);
-                playerRepository.Edit(playerToUpdate);
+                await playerRepository.Edit(playerToUpdate);
 
                 return RedirectToAction("Index");
             }
@@ -156,7 +156,7 @@ namespace TeamMVCProject.Controllers
         /// <summary>
         /// Populates player with teams.
         /// </summary>
-        /// <param name="player"></param>
+        /// <param name="player"></param>6
         /// <returns></returns>
         private async Task<List<PlayerTeamVM>> PopulateAssignedTeamData(Player player)
         {

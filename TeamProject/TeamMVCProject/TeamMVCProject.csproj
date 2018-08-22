@@ -169,6 +169,7 @@
     <Compile Include="Models\Team.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repository\PlayerRepository.cs" />
+    <Compile Include="Repository\TeamRepository.cs" />
     <Compile Include="ViewModels\PlayerTeamVM.cs" />
   </ItemGroup>
   <ItemGroup>

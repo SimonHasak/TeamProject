@@ -9,18 +9,19 @@ using System.Threading.Tasks;
 using System.Web.Mvc;
 using TeamMVCProject.Context;
 using TeamMVCProject.Models;
+using TeamMVCProject.Repository;
 using TeamMVCProject.ViewModels;
 
 namespace TeamMVCProject.Controllers
 {
     public class TeamsController : Controller
     {
-        private TeamsPlayersContext db = new TeamsPlayersContext();
+        private TeamRepository teamRepository = new TeamRepository();
 
         // GET: Teams
         public async Task<ActionResult> Index()
         {
-            return View(await db.Teams.Include(p => p.Players).ToListAsync());        
+            return View(await teamRepository.IncludeTeamPlayers());        
         }
 
         // GET: Teams/Details/5
@@ -30,7 +31,7 @@ namespace TeamMVCProject.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Team team = await db.Teams.FindAsync(id);
+            Team team = await teamRepository.FindAsync(Convert.ToInt32(id));
             if (team == null)
             {
                 return HttpNotFound();
@@ -39,40 +40,37 @@ namespace TeamMVCProject.Controllers
         }
 
         // GET: Teams/Create
-        public ActionResult Create()
+        public async Task<ActionResult> Create()
         {
-            ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName");
-            var team = new Team();
-            team.Players = new List<Player>();
-            PopulateAssignedTeamData(team);
+            ViewBag.TeamID = new SelectList(await teamRepository.GetTeams(), "ID", "TeamName");
+            var team = new Team
+            {
+                Players = new List<Player>()
+            };
+            ViewBag.Players = await PopulateAssignedPlayerData(team);
             return View();
         }
-
+            
         // POST: Teams/Create
         // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create([Bind(Include = "ID,Name,Description")] Team team, string[] selectedPlayers)
+        public async Task<ActionResult> Create([Bind(Include = "ID,Name,Description")] Team team, int[] selectedPlayers)
         {
-            if (selectedPlayers != null)
+            if (!ModelState.IsValid)
             {
-                team.Players = new List<Player>();
-                foreach (var player in selectedPlayers)
-                {
-                    var playerToAdd = await db.Players.FindAsync(int.Parse(player));
-                    team.Players.Add(playerToAdd);
-                }
+                ViewBag.Players = await PopulateAssignedPlayerData(team);
+                return View(team);
             }
 
-            if (ModelState.IsValid)
+            if (selectedPlayers != null)
             {
-                db.Teams.Add(team);
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                await teamRepository.SetTeamPlayers(team, selectedPlayers);
             }
-            PopulateAssignedTeamData(team);
-            return View(team);
+
+            await teamRepository.AddTeam(team);
+            return RedirectToAction("Index");
         }
 
         // GET: Teams/Edit/5
@@ -82,18 +80,17 @@ namespace TeamMVCProject.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            //Team team = db.Teams.Find(id);db.Players.Include(p => p.Teams).ToListAsync()
-            Team team = await db.Teams
-                .Include(p => p.Players)
-                .Where(c => c.ID == id)
-                .SingleAsync();
 
-            if (team == null)
+            var teams = await teamRepository.IncludeTeamPlayers();
+            var teamToPopulate = teams.Where(t => t.ID == id).Single();
+
+            if (teamToPopulate == null)
             {
                 return HttpNotFound();
             }
-            PopulateAssignedTeamData(team);
-            return View(team);
+
+            ViewBag.Players = await PopulateAssignedPlayerData(teamToPopulate);
+            return View(teamToPopulate);
         }
 
         // POST: Teams/Edit/5
@@ -107,35 +104,26 @@ namespace TeamMVCProject.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            var teamToUpdate = await db.Teams
-                .Include(p => p.Players)
-                .Where(i => i.ID == id)
-                .SingleAsync();
 
-            try
+            var teams = await teamRepository.IncludeTeamPlayers();
+            var teamToUpdate = teams.Where(i => i.ID == id).Single();
+
+            if (ModelState.IsValid)
             {
-                UpdateTeamPlayers(selectedPlayers, teamToUpdate);
-
-                db.Entry(teamToUpdate).State = EntityState.Modified;
-                db.SaveChanges();
+                await UpdateTeamPlayers(selectedPlayers, teamToUpdate);
+                await teamRepository.Edit(teamToUpdate);
 
                 return RedirectToAction("Index");
             }
-            catch (RetryLimitExceededException /* dex */)
-            {
-                //Log the error (uncomment dex variable name and add a line here to write a log.
-                ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists, see your system administrator.");
-            }
 
+            ViewBag.Players = await PopulateAssignedPlayerData(teamToUpdate);
 
-            //ViewBag.TeamID = new SelectList(db.Teams, "ID", "TeamName", playerToUpdate.TeamID);
-            PopulateAssignedTeamData(teamToUpdate);
             return View(teamToUpdate);
         }
 
-        private void PopulateAssignedTeamData(Team team)
+        private async Task<List<PlayerTeamVM>> PopulateAssignedPlayerData(Team team)
         {
-            var allPlayers = db.Players;
+            var allPlayers = await teamRepository.GetPlayers();
             var teamPlayers = new HashSet<int>(team.Players.Select(t => t.ID));
             var viewModel = new List<PlayerTeamVM>();
             foreach (var player in allPlayers)
@@ -147,10 +135,10 @@ namespace TeamMVCProject.Controllers
                     isAssigned = teamPlayers.Contains(player.ID)
                 });
             }
-            ViewBag.Players = viewModel;
+            return viewModel;
         }
 
-        private void UpdateTeamPlayers(string[] selectedPlayers, Team teamToUpdate)
+        private async Task UpdateTeamPlayers(string[] selectedPlayers, Team teamToUpdate)
         {
             if (selectedPlayers == null)
             {
@@ -158,10 +146,11 @@ namespace TeamMVCProject.Controllers
                 return;
             }
 
+            var allPlayers = await teamRepository.GetPlayers();
             var selectedPlayersHS = new HashSet<string>(selectedPlayers);
             var teamPlayers = new HashSet<int>
                 (teamToUpdate.Players.Select(p => p.ID));
-            foreach (var player in db.Players)
+            foreach (var player in allPlayers)
             {
                 if (selectedPlayersHS.Contains(player.ID.ToString()))
                 {
@@ -187,7 +176,7 @@ namespace TeamMVCProject.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Team team = await db.Teams.FindAsync(id);
+            Team team = await teamRepository.FindAsync(Convert.ToInt32(id));
             if (team == null)
             {
                 return HttpNotFound();
@@ -200,18 +189,12 @@ namespace TeamMVCProject.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteConfirmed(int id)
         {
-            Team team = await db.Teams.FindAsync(id);
-            db.Teams.Remove(team);
-            db.SaveChanges();
+            await teamRepository.Remove(id);
             return RedirectToAction("Index");
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                db.Dispose();
-            }
             base.Dispose(disposing);
         }
     }

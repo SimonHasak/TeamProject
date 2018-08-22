@@ -4,7 +4,40 @@
     ViewBag.Title = "Player";
 }
 
+<head>
+    <script>
+        function getInputMessage() {
+            return document.getElementById("myInput").value;
+        }
+
+        function contains(textOne, textTwo) {
+            return textOne.indexOf(textTwo) != -1;
+        }
+
+        function showChoosedNames() {
+            var searchText = getInputMessage().toLowerCase();
+            $('.searchTable').each(function () {
+                var rowText = $(this).children('#playerName').text().toLowerCase();
+                if (contains(rowText, searchText)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+    </script>
+</head>
+
 <h2>Index</h2>
+
+<div class="container">
+    <div class="form-group">
+        <div class="input-group">
+            <span class="input-group-addon"><i class="glyphicon glyphicon-search"></i></span>
+            <input type="text" id="myInput" onkeyup="showChoosedNames()" placeholder="Search for players..." class="form-control">
+        </div>
+    </div>
+</div>
 
 <p>
     @Html.ActionLink("Create New", "Create")
@@ -20,20 +53,21 @@
         <th></th>
     </tr>
 
-@foreach (var item in Model) {
-    <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.Name)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Description)
-        </td>
-        <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.ID }) |
-            @Html.ActionLink("Details", "Details", new { id=item.ID }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.ID })
-        </td>
-    </tr>
-}
+
+    @foreach (var item in Model) {
+            <tr class="searchTable">
+                <td id="playerName">
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Description)
+                </td>
+                <td>
+                    @Html.ActionLink("Edit", "Edit", new { id=item.ID }) |
+                    @Html.ActionLink("Details", "Details", new { id=item.ID }) |
+                    @Html.ActionLink("Delete", "Delete", new { id=item.ID })
+                </td>
+            </tr>
+        }
 
 </table>
